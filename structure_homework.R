@@ -1,7 +1,7 @@
 #PSYC 259 Homework 3 - Data Structure
 #For full credit, provide answers for at least 8/11 questions
 
-#List names of students collaborating with: 
+#List names of students collaborating with: Aylin, Krista, Maddy
 
 ### SETUP: RUN THIS BEFORE STARTING ----------
 
@@ -39,7 +39,8 @@ load("rs_data.RData")
 
 #ANSWER
 
-
+rs_joined_orig <- full_join(rs_new, rs_old, by = "Artist", "Song")
+nrow(rs_joined_orig) # I think it is because some rows in one dataset match up to multiple rows in the other dataset.
 
 ### Question 2 ---------- 
 
@@ -50,7 +51,14 @@ load("rs_data.RData")
 # Make Rank and Year into integer variables for rs_old before binding them into rs_all
 
 #ANSWER
+rs_old <- rs_old %>%
+  mutate(Source = "Old",
+         Year = as.integer(Year),
+         Rank = as.integer(Rank))
 
+rs_new <- rs_new %>% mutate(Source = "New")
+
+rs_all <- bind_rows(rs_new, rs_old)
 
 ### Question 3 ----------
 
@@ -61,7 +69,14 @@ load("rs_data.RData")
 # Finally, read the documentation for the functions str_to_lower and str_trim
 # Use both functions to make all artists/song lowercase and remove any extra spaces
 
-#ANSWER
+#ANSWER"
+ rs_all <- rs_all %>% mutate(across(c("Artist", "Song") %>% 
+                                      str_remove_all("\\bThe\\b") %>%
+                                      str_replace_all("&", "and")) %>%
+                                      str_remove_all("[:punct:]")) %>%
+                                      str_to_lower() %>%
+                                      str_trim
+
 
 
 ### Question 4 ----------
@@ -75,7 +90,11 @@ load("rs_data.RData")
 # in the new rs_joined compared to the original. Use nrow to check (there should be 799 rows)
 
 #ANSWER
+old <- rs_all %>% filter(Source == "Old")
+new <- rs_all %>% filter(Source == "New")
 
+rs_joined <- full_join(old, new, by = c("Artist", "Song"), suffix = c("_Old", "_New"))
+nrow(rs_joined) # I got 832 so something went wrong.
 
 ### Question 5 ----------
 
@@ -89,7 +108,10 @@ load("rs_data.RData")
 
 #ANSWER
 
-
+rs_joined <- rs_joined %>% select(-Source) %>%
+                    mutate(across(c("Rank_New", "Rank_Old")) %>% 
+                             str_extract("NA")) %>%
+                              mutate("Rank_Change" = ("Rank_Old" - "Rank_New"))
 ### Question 6 ----------
 
 # Add a new variable to rs_joined that takes the year and turns it into a decade with "s" at the end
