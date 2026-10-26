@@ -3,6 +3,8 @@
 
 #List names of students collaborating with: Aylin, Krista, Maddy
 
+## Claude was used to clarify error messages
+
 ### SETUP: RUN THIS BEFORE STARTING ----------
 
 install.packages("rvest")
@@ -40,7 +42,7 @@ load("rs_data.RData")
 #ANSWER
 
 rs_joined_orig <- full_join(rs_new, rs_old, by = "Artist", "Song")
-nrow(rs_joined_orig) # I think it is because some rows in one dataset match up to multiple rows in the other dataset.
+nrow(rs_joined_orig) # It has 1423 rows! I think it is because some rows in one dataset match up to multiple rows in the other dataset.
 
 ### Question 2 ---------- 
 
@@ -70,12 +72,11 @@ rs_all <- bind_rows(rs_new, rs_old)
 # Use both functions to make all artists/song lowercase and remove any extra spaces
 
 #ANSWER"
- rs_all <- rs_all %>% mutate(across(c("Artist", "Song") %>% 
-                                      str_remove_all("\\bThe\\b") %>%
-                                      str_replace_all("&", "and")) %>%
-                                      str_remove_all("[:punct:]")) %>%
-                                      str_to_lower() %>%
-                                      str_trim
+ rs_all <- rs_all %>% mutate(across(c("Artist", "Song"), str_remove_all, "\\bThe\\b"),
+                                    across(c("Artist", "Song"), str_replace_all,"&", "and"),
+                                    across(c("Artist", "Song"), str_remove_all, "[:punct:]"),
+                                    across(c("Artist", "Song"), str_to_lower(),
+                                    across(c("Artist", "Song"), str_trim))
 
 
 
@@ -94,7 +95,7 @@ old <- rs_all %>% filter(Source == "Old")
 new <- rs_all %>% filter(Source == "New")
 
 rs_joined <- full_join(old, new, by = c("Artist", "Song"), suffix = c("_Old", "_New"))
-nrow(rs_joined) # I got 832 so something went wrong.
+nrow(rs_joined) # I got 860 so something went wrong.
 
 ### Question 5 ----------
 
@@ -108,10 +109,12 @@ nrow(rs_joined) # I got 832 so something went wrong.
 
 #ANSWER
 
-rs_joined <- rs_joined %>% select(-Source) %>%
-                    mutate(across(c("Rank_New", "Rank_Old")) %>% 
-                             str_extract("NA")) %>%
-                              mutate("Rank_Change" = ("Rank_Old" - "Rank_New"))
+rs_joined <- rs_joined %>% select(-c(Source_New, Source_Old) %>%
+                    mutate(across(c(Rank_New, Rank_Old), str_extract("NA")) %>% 
+                    mutate(Rank_Change = (Rank_Old - Rank_New)) %>%
+                    arrange(Rank_Change)
+                    
+rs_joined
 ### Question 6 ----------
 
 # Add a new variable to rs_joined that takes the year and turns it into a decade with "s" at the end
@@ -121,8 +124,16 @@ rs_joined <- rs_joined %>% select(-Source) %>%
 # Which decade improved the most?
 
 #ANSWER
+rs_joined <- rs_joined %>% mutate(Decade = floor(year/10)*10) %>% 
+                                  Decade = round(year, -1) %>%
+                                  Decade = as.factor(Decade) %>%
+                                  Decade = str_c(Decade, "s"))
+                            
+                            
+rs_joined %>% group_by(Decade) %>% 
+  summarize(mean(Rank_Change))
 
-
+## I'm getting errors so I can't tell which decade improved the most.
 
 ### Question 7 ----------
 
@@ -132,8 +143,9 @@ rs_joined <- rs_joined %>% select(-Source) %>%
 # proportion of songs in each of the top three decades (vs. all the rest)
 
 #ANSWER
-
-
+rs_joined %>% count(Decade)
+rs_joined %>% fct_lump(Decade, n = 3, other_level = "Other")
+top3_decades <- fact_count(rs_joined$Decade, sort = FALSE, prop = TRUE)
 
 ### Question 8 ---------- 
 
@@ -142,7 +154,9 @@ rs_joined <- rs_joined %>% select(-Source) %>%
 # Use parse_date_time to fix it
 
 #ANSWER
+top20 <- read.csv("top_20.csv")
 
+top20 <- top20 %>% mutate(Release = parse_date(Release, format = c("%d-%b-%Y")))
 
 ### Question 9 --------
 
